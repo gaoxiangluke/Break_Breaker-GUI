@@ -14,17 +14,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
-
+from ArduinoUnoClass import Arduino
+import threading
+second = 0
+AR1 = Arduino()
 fig = Figure(figsize=(5,4), dpi=100)
 ax1 = fig.add_subplot(111)
+dataArray=[]
+second = 0
+start = time.time()
+Quit = False
 def animate(i):
-    pullData = open("sampleText.txt", "r").read()
-    dataArray = pullData.split('\n')
     xar = []
     yar = []
     for eachLine in dataArray:
         if len(eachLine) > 1:
-            x, y = eachLine.split(',')
+            x = eachLine[0]
+            y = eachLine[1]
             xar.append(int(x))
             yar.append(int(y))
     ax1.clear()
@@ -54,6 +60,16 @@ class BBG(tk.Tk):
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
+    def task(self,second):
+        Array = []
+        Array = AR1.readData(0,False,True,True,False);
+        if ( len(Array) > 0):
+                dataArray.append([second,Array[0]])
+        second=second+1;
+        after(self,1000,self.task(second))
+        #if time.time() - start > 1:
+         #       start = time.time()
+         #       second=second+1;
 
 
 class StartPage(tk.Frame):
@@ -88,9 +104,11 @@ class PageTwo(tk.Frame):
         tab_parent.add(tab1, text="Speed")
         tab_parent.add(tab2, text="Temp")
         tab_parent.pack(expand=1, fill='both')
-
-
-
+        last_inc = time.time()
+        
+       
+       
+        
 
 
         canvas = FigureCanvasTkAgg(fig, tab1)  # A tk.DrawingArea.
@@ -120,9 +138,10 @@ class PageTwo(tk.Frame):
 
         def MotorDisable():
             MotorBtn.configure(text="Turn on Motor", command=MotorEnable)
-
+            AR1.sendInteger(2,True)
         def MotorEnable():
             MotorBtn.configure(text="Turn off Motor", command=MotorDisable)
+            AR1.sendInteger(1,True)
 
         btnFrame = Frame(rightFrame, width=200, height=200)
         btnFrame.grid(row=1, column=0, padx=10, pady=2)
@@ -130,8 +149,32 @@ class PageTwo(tk.Frame):
         MotorBtn.pack()
         StartBtn = Button(btnFrame, text="start system")
         StartBtn.pack()
+class myGui(threading.Thread):
+        def __init__(self):
+                threading.Thread.__init__(self)
+                self.start()
+        def callback(self):
+                
+                AR1.closeConn()
+                self.app.quit()
+                self.app.destroy()
+                Quit = True
+        def run(self):
+                self.app = BBG()
+                self.app.protocol("WM_DELETE_WINDOW",self.callback)
+                ani = animation.FuncAnimation(fig,animate, interval=1000)
+                self.app.mainloop()
+appi = myGui()
+while (Quit == False):
+        Array = []
+        Array = AR1.readData(0,False,True,True,False);
+        if ( len(Array) > 0):
+                dataArray.append([second,Array[0]])
+        second=second+1;
+        if time.time() - start > 1:
+                start = time.time()
+                second=second+1;
+        
 
-
-app = BBG()
-ani = animation.FuncAnimation(fig,animate, interval=1000)
-app.mainloop()
+        
+       

@@ -1,10 +1,5 @@
-import serial
-
-ser = serial.Serial('/dev/ttyACM0',9600)
-s = [0,1]
+from ArduinoUnoClass import Arduino
+AR1 = Arduino()
 while True:
-    read_serial=ser.readline()
-    s[0] = str(int (ser.readline(),16))
-    print(int(s[0]))
-
-    #print(read_serial)
+    Array = AR1.readData(0,False,True,True,False)
+    print(Array[0]+1);

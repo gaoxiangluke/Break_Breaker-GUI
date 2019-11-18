@@ -10,12 +10,14 @@ class serialRW():
     #is valid
     def read_data(self):
         #clear input buffer
-        self.ser.flushImput()
+        self.ser.flushInput()
         s = ""
         if self.ser.inWaiting()>0:
             read_serial=self.ser.readline()
             s = read_serial.split()
-            print(s+"\n")
-
+            print(s)
+Se=serialRW();
+while True:
+	Se.read_data()
 
 
