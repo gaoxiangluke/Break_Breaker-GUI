@@ -135,20 +135,44 @@ class PageTwo(tk.Frame):
         # Right Frame and its contents
         rightFrame = Frame(self, width=200, height=600)
         rightFrame.grid(row=0, column=1, padx=10, pady=2)
-
+        
         def MotorDisable():
             MotorBtn.configure(text="Turn on Motor", command=MotorEnable)
             AR1.sendInteger(2,True)
         def MotorEnable():
             MotorBtn.configure(text="Turn off Motor", command=MotorDisable)
             AR1.sendInteger(1,True)
-
+        def SpeedLow():
+            AR1.sendInteger(3,True)
+        def Speedmed():
+            AR1.sendInteger(3,True)
+        def Speedhigh():
+            AR1.sendInteger(3,True)
+                
         btnFrame = Frame(rightFrame, width=200, height=200)
         btnFrame.grid(row=1, column=0, padx=10, pady=2)
         MotorBtn = Button(btnFrame, text="Turn on Motor", command=MotorEnable)
         MotorBtn.pack()
         StartBtn = Button(btnFrame, text="start system")
         StartBtn.pack()
+        SpeedBtnFrame = Frame(btnFrame)
+        HighSpeed = Button(btnFrame, text="High", command=Speedhigh)
+        HighSpeed.pack(side=RIGHT)
+        MedSpeed = Button(btnFrame, text="Medium", command=Speedmed)
+        MedSpeed.pack(side=RIGHT)
+        LowSpeed =  Button(btnFrame, text="Low", command=SpeedLow)
+        LowSpeed.pack(side=RIGHT)
+        SpeedBtnFrame.pack(side=TOP)
+        LabelFrame = Frame(rightFrame)
+        RPMIndicator = Label(LabelFrame,text = "RPM = 0")
+        RPMIndicator.pack(side=TOP)
+        TempIndicator = Label(LabelFrame,text = "temp = 0C")
+        TempIndicator.pack(side=TOP)
+        LoadIndicator = Label(LabelFrame,text = "Load = 0N")
+        LoadIndicator.pack(side=TOP)
+        LabelFrame.grid(row=2, column=0, padx=10, pady=2)
+        
+        
 class myGui(threading.Thread):
         def __init__(self):
                 threading.Thread.__init__(self)
@@ -171,7 +195,7 @@ while (Quit == False):
         if ( len(Array) > 0):
                 dataArray.append([second,Array[0]])
         second=second+1;
-        if time.time() - start > 1:
+        if time.time() - start > 0.25:
                 start = time.time()
                 second=second+1;
         
