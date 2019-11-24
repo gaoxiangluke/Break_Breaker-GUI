@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter as tk
 from tkinter import *
 from PIL import ImageTk,Image
+from datetime import datetime
 import matplotlib.animation as animation
 LARGE_FONT = ("Verdana", 12)
 from tkinter import ttk
@@ -14,27 +15,41 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
-from ArduinoUnoClass import Arduino
+enableArduino = 0
+testStrat = 0
+if (enableArduino == 1):
+    from ArduinoUnoClass import Arduino
 import threading
 second = 0
-AR1 = Arduino()
+if (enableArduino == 1):
+    AR1 = Arduino()
 fig = Figure(figsize=(5,4), dpi=100)
 ax1 = fig.add_subplot(111)
-dataArray=[]
+PWMArray=[]
+TempArray=[]
+LoadArray=[]
 second = 0
 start = time.time()
 Quit = False
+PwMNumber = "RPM = " + str(0)
+TempNumber = "RPM = " + str(0) + "C"
+LoadNumber = "load= " + str(0) + "N"
 def animate(i):
+   
     xar = []
     yar = []
-    for eachLine in dataArray:
+    for eachLine in PWMArray:
         if len(eachLine) > 1:
-            x = eachLine[0]
-            y = eachLine[1]
+            if (enableArduino == 0):
+                x,y = eachLine.split(',')
+            else:
+                x = eachLine[0]
+                y = eachLine[1]
             xar.append(int(x))
             yar.append(int(y))
     ax1.clear()
     ax1.plot(xar, yar)
+
 class BBG(tk.Tk):
 
     def __init__(self, *args, **kwargs):
@@ -60,16 +75,6 @@ class BBG(tk.Tk):
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
-    def task(self,second):
-        Array = []
-        Array = AR1.readData(0,False,True,True,False);
-        if ( len(Array) > 0):
-                dataArray.append([second,Array[0]])
-        second=second+1;
-        after(self,1000,self.task(second))
-        #if time.time() - start > 1:
-         #       start = time.time()
-         #       second=second+1;
 
 
 class StartPage(tk.Frame):
@@ -105,10 +110,10 @@ class PageTwo(tk.Frame):
         tab_parent.add(tab2, text="Temp")
         tab_parent.pack(expand=1, fill='both')
         last_inc = time.time()
-        
-       
-       
-        
+
+
+
+
 
 
         canvas = FigureCanvasTkAgg(fig, tab1)  # A tk.DrawingArea.
@@ -135,20 +140,31 @@ class PageTwo(tk.Frame):
         # Right Frame and its contents
         rightFrame = Frame(self, width=200, height=600)
         rightFrame.grid(row=0, column=1, padx=10, pady=2)
-        
+
         def MotorDisable():
             MotorBtn.configure(text="Turn on Motor", command=MotorEnable)
-            AR1.sendInteger(2,True)
+            if (enableArduino == 1):
+                AR1.sendInteger(2,True)
         def MotorEnable():
             MotorBtn.configure(text="Turn off Motor", command=MotorDisable)
-            AR1.sendInteger(1,True)
+            if (enableArduino == 1):
+                AR1.sendInteger(1,True)
         def SpeedLow():
-            AR1.sendInteger(3,True)
+            if (enableArduino == 1):
+                AR1.sendInteger(3,True)
         def Speedmed():
-            AR1.sendInteger(3,True)
+            if (enableArduino == 1):
+                AR1.sendInteger(3,True)
         def Speedhigh():
-            AR1.sendInteger(3,True)
-                
+            if (enableArduino == 1):
+                AR1.sendInteger(3,True)
+        def StoreData():
+            now = datetime.now()
+            dt_string = now.strftime("%dd_%mm_%YY_%HH_%MM_%SS")
+            pushData =open(dt_string+".dat","w+")
+            for i in PWMArray:
+                pushData.write(i)
+
         btnFrame = Frame(rightFrame, width=200, height=200)
         btnFrame.grid(row=1, column=0, padx=10, pady=2)
         MotorBtn = Button(btnFrame, text="Turn on Motor", command=MotorEnable)
@@ -156,6 +172,8 @@ class PageTwo(tk.Frame):
         StartBtn = Button(btnFrame, text="start system")
         StartBtn.pack()
         SpeedBtnFrame = Frame(btnFrame)
+        SpeedLabel=Label(btnFrame, text="Setting speed")
+        SpeedLabel.pack()
         HighSpeed = Button(btnFrame, text="High", command=Speedhigh)
         HighSpeed.pack(side=RIGHT)
         MedSpeed = Button(btnFrame, text="Medium", command=Speedmed)
@@ -164,41 +182,54 @@ class PageTwo(tk.Frame):
         LowSpeed.pack(side=RIGHT)
         SpeedBtnFrame.pack(side=TOP)
         LabelFrame = Frame(rightFrame)
-        RPMIndicator = Label(LabelFrame,text = "RPM = 0")
+        RPMIndicator = Label(LabelFrame,text =   PwMNumber )
         RPMIndicator.pack(side=TOP)
-        TempIndicator = Label(LabelFrame,text = "temp = 0C")
+        TempIndicator = Label(LabelFrame,text = TempNumber)
         TempIndicator.pack(side=TOP)
-        LoadIndicator = Label(LabelFrame,text = "Load = 0N")
+        LoadIndicator = Label(LabelFrame,text = LoadNumber)
         LoadIndicator.pack(side=TOP)
         LabelFrame.grid(row=2, column=0, padx=10, pady=2)
-        
-        
+
+        DataButton = Button(rightFrame,text="StoreData",command=StoreData)
+        DataButton.grid(row=3, column=0, padx=10, pady=2)
+        extraButton = Button(rightFrame, text="Summon Danny")
+        extraButton.grid(row=4, column=0, padx=10, pady=2)
+
 class myGui(threading.Thread):
         def __init__(self):
-                threading.Thread.__init__(self)
-                self.start()
+            threading.Thread.__init__(self)
+            self.start()
         def callback(self):
-                
+            if (enableArduino == 1):
                 AR1.closeConn()
-                self.app.quit()
-                self.app.destroy()
-                Quit = True
+            self.app.quit()
+            self.app.destroy()
+            Quit = True
         def run(self):
-                self.app = BBG()
-                self.app.protocol("WM_DELETE_WINDOW",self.callback)
-                ani = animation.FuncAnimation(fig,animate, interval=1000)
-                self.app.mainloop()
+            self.app = BBG()
+            self.app.protocol("WM_DELETE_WINDOW",self.callback)
+            ani = animation.FuncAnimation(fig,animate, interval=1000)
+            self.app.mainloop()
 appi = myGui()
+i =0
 while (Quit == False):
-        Array = []
-        Array = AR1.readData(0,False,True,True,False);
-        if ( len(Array) > 0):
-                dataArray.append([second,Array[0]])
-        second=second+1;
-        if time.time() - start > 0.25:
+    Array = []
+    if (enableArduino == 1):
+        if (testStrat == 1):
+            Array = AR1.readData(0,False,True,True,False)
+            if ( len(Array) > 0):
+                PWMArray.append([second,Array[0]])
+                second=second+1
+            if time.time() - start > 0.25:
                 start = time.time()
-                second=second+1;
-        
+                second=second+1
+    if (enableArduino == 0):
+        pullData = open('sampleText.txt', 'r').read()
+        PWMArray = pullData.split('\n')
+        x,y = PWMArray[len(PWMArray)-4].split(',')
+        PwMNumber = "RPM = " + y
+        TempNumber = "RPM = " + y + "C"
+        LoadNumber = "load= " + y + "N"
 
-        
-       
+
+
