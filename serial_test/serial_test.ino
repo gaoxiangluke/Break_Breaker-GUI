@@ -4,7 +4,7 @@ int hall_pin = 8;
 volatile byte half_revolutions;
 unsigned int rpm;
 unsigned long timeold;
-void magnet_detect();
+
 
 //temp part
 // which analog pin to connect
@@ -27,10 +27,10 @@ int RPWM=9;
 int LPWM=10;
 int L_EN=11;
 int R_EN=12;
-int dutycycle=100;
+int dutycycle=20;
 //system set up part
 int speed = 1;
-bool systemOn = false;
+bool systemOn = true;
 
 void PrepareMotor(){
    // put your setup code here, to run once:
@@ -44,15 +44,11 @@ void PrepareMotor(){
 }
 void PrepareTemp(){
    analogReference(EXTERNAL);
-   tempsensor=0;
 }
 void PrepareLoad(){
 }
 void PrepareHall(){
-   attachInterrupt(hall_pin, magnet_detect, RISING);//Initialize the intterrupt pin (Arduino digital pin 2)
-   half_revolutions = 0;
-   rpm = 0;
-   timeold = 0;
+  
 }
 void disablemotor(){
    for(int i=9;i<13;i++){
@@ -112,6 +108,8 @@ void ReadTemp(){
   }
 void setup() {
   prepareSerial();
+   PrepareTemp();
+   PrepareMotor();
 }
 void loop() {
   //read data
@@ -130,29 +128,27 @@ void loop() {
     //set speed low 
     else if (data == 3){
       digitalWrite(13, HIGH); 
-       dutycycle = 100;
+       dutycycle = 20;
     }
     //set speed med 
     else if (data == 4)
     {
-     dutycycle=180;
+     dutycycle=40;
     }
     //set speed high
     else if (data == 5){
-      dutycycle=255;
+      dutycycle=80;
     }
+  }
    //take and send data
    if (systemOn == true){
-      ReadHall();
+     // ReadHall();
       ReadTemp();
-      Serial.println(rpm);
+     // Serial.println(rpm);
       Serial.println(tempsensor);
    }
    delay(250);                  // give the loop some break
   
 }
-}
-void magnet_detect(){
-   half_revolutions++;
-   Serial.println("detect");
- }
+
+
