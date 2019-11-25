@@ -1,11 +1,12 @@
 //hall effect senor part
 // digital pin 2 is the hall pin
-int hall_pin = 8;
+int hall_pin = 2;
 volatile byte half_revolutions;
-unsigned int rpm;
-unsigned long timeold;
-
-
+double rpm;
+double timeold;
+double timenew;
+void magnet_detect();
+int buttonPin = 0;
 //temp part
 // which analog pin to connect
 #define THERMISTORPIN A0         
@@ -27,7 +28,8 @@ int RPWM=9;
 int LPWM=10;
 int L_EN=11;
 int R_EN=12;
-int dutycycle=20;
+int dutycycle=60;
+int buttonEnable = 0;
 //system set up part
 int speed = 1;
 bool systemOn = true;
@@ -48,7 +50,11 @@ void PrepareTemp(){
 void PrepareLoad(){
 }
 void PrepareHall(){
-  
+   pinMode(2, INPUT_PULLUP);
+   attachInterrupt(0, magnet_detect, FALLING);//Initialize the intterrupt pin (Arduino digital pin 2)
+   half_revolutions = 0;
+   rpm = 0;
+   timeold = 0;
 }
 void disablemotor(){
    for(int i=9;i<13;i++){
@@ -63,12 +69,15 @@ void turnOnMotor(){
 void prepareSerial(){
    pinMode(13, OUTPUT);
   Serial.begin(9600);   //Starting serial communication
- digitalWrite(13, LOW);  
+ digitalWrite(13, LOW);
+    pinMode(buttonPin, INPUT_PULLUP);
  }
 void ReadHall(){
-  if (half_revolutions >= 20) { 
-     rpm = 30*1000/(millis() - timeold)*half_revolutions;
-     timeold = millis();
+  if (half_revolutions >= 4) { 
+      timenew = micros();
+    // Serial.print(timenew);
+     rpm = 30*1000000.0/(timenew - timeold)*half_revolutions;
+     timeold = timenew;
      half_revolutions = 0;
      //Serial.println(rpm,DEC);
    }
@@ -108,17 +117,27 @@ void ReadTemp(){
   }
 void setup() {
   prepareSerial();
-   PrepareTemp();
-   PrepareMotor();
+  PrepareTemp();
+  PrepareMotor();
+  PrepareHall();                            
 }
 void loop() {
+  int buttonValue = digitalRead(buttonPin);
+   //disablemotor();
+  //check button
+  if (buttonValue == LOW){
+      // If button pushed, turn LED on
+      systemOn = false;
+      disablemotor();
+   } 
   //read data
-  if (Serial.available()){
+ turnOnMotor();
+  if (Serial.available() && buttonEnable == 0){
     int data =Serial.read() ;
     //turn on the system
     if (data==1){
       systemOn = true;
-      turnOnMotor();
+     turnOnMotor();
     }
     //turn of the system
     else if (data==2){
@@ -137,18 +156,30 @@ void loop() {
     }
     //set speed high
     else if (data == 5){
-      dutycycle=80;
+      dutycycle=200;
     }
   }
    //take and send data
    if (systemOn == true){
-     // ReadHall();
       ReadTemp();
+      ReadHall();
      // Serial.println(rpm);
-      Serial.println(tempsensor);
+     // Serial.println(tempsensor);
+      Serial.println(rpm,8);
+      Serial.println("\n");
    }
-   delay(250);                  // give the loop some break
+   delay(1);                  // give the loop some break
   
 }
+void magnet_detect()//This function is called whenever a magnet/interrupt is detected by the arduino
+ {
+   if (systemOn == true){
+     half_revolutions++;
+  }
+ }
+  
+  
+ 
+
 
 
